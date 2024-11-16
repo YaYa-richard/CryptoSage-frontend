@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ebay/nice-modal-react": "^1.2.13",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@ethsign/sp-sdk": "^0.7.8",
@@ -25,6 +26,7 @@
     "@rainbow-me/rainbowkit": "^2.2.0",
     "@tanstack/react-query": "^5.59.20",
     "@tanstack/react-table": "^8.20.5",
+    "antd": "^5.22.1",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",

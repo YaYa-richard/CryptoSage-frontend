@@ -385,16 +385,16 @@ export default function ConnectedClaimPage() {
     const [isVisible, setIsVisible] = useState(false);
     const [opacity, setOpacity] = useState(0);
     const [pageState, setPage]=React.useState({
-        topic: "",
-        judge: "",
-        yes: 0,
-        no: 0
+        topic:"",
+        end:0,
+        yes:0,
+        no:0
     })
     let contractAddress:string;
     const router=useRouter();
     let data={
-        topic:"Who will win the World Cup?",
-        judge:"0x12345678",
+        topic:"Who will win World Cup?",
+        end:0,
         yes:0,
         no:0
     };

@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Wallet } from 'lucide-react'
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter} from "next/navigation";
-import {ethers} from "ethers";
-import {useState} from "react";
+import {ethers, parseEther} from "ethers";
+import {useEffect, useState} from "react";
 import lighthouse from "@lighthouse-web3/sdk"
+
 import {
   SignProtocolClient,
   SpMode,
@@ -14,6 +15,8 @@ import {
   IndexService
 } from "@ethsign/sp-sdk";
 import * as test from "node:test";
+import {color, fontStyle} from "@mui/system";
+import {white} from "next/dist/lib/picocolors";
 
 export default function UnconnectedWalletPage() {
 
@@ -25,6 +28,7 @@ export default function UnconnectedWalletPage() {
       chain: EvmChains.sepolia,
       account:accounts[0]
     });
+
     const SchemaRes = await client.createSchema({
       name: "feedback_schema",
       data: [{
@@ -32,6 +36,7 @@ export default function UnconnectedWalletPage() {
         type: accounts[0]
       }],
     });
+
     const AttestationRes = await client.createAttestation({
       schemaId: SchemaRes.schemaId,
       data: {
@@ -42,18 +47,18 @@ export default function UnconnectedWalletPage() {
     });
     return AttestationRes;
   }
-
-
   const [selectedOption, setSelectedOption] = React.useState<string>("yes");
   const [pageState, setPage]=React.useState({
     topic: "",
-    judge: "",
+    end: 0,
     yes: 0,
     no: 0
   })
   const [feedbackSelection, setFeedbackSelection] = React.useState<string>("1")
+  const [feedbackValidation, setValidation] = React.useState<string>("")
   const [contractAddress, setAddress] = useState('');
   const [feedbackcomment, setComment] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date().getTime());
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const LAZY_BET_ABI=[
@@ -438,10 +443,19 @@ export default function UnconnectedWalletPage() {
   }
   let data={
     topic:"Who will win World Cup?",
-    judge:"0x12345678",
+    end:0,
     yes:0,
     no:0
   }
+  useEffect(() => {
+    // 每秒更新一次时间
+    const interval = setInterval(() => {
+      setCurrentTime(new Date().getTime());
+    }, 1000);
+
+    // 清理定时器
+    return () => clearInterval(interval);
+  }, []);
 
   async function makingBet() {
     if (window.ethereum) {
@@ -454,16 +468,20 @@ export default function UnconnectedWalletPage() {
 
         const op=selectedOption == "yes"
         console.log("op:",op);
-        const transaction = await contract.bet(op, 1);
-        await transaction.wait();
-        router.push("/HavingBet");
-        if(contract!=null){
-          const transaction = await contract.bet(op, 1);
+        if(currentTime<pageState.end){
+          //const value=parseEther("1")
+          const value=BigInt(10 ** 18);
+          const transaction = await contract.bet(selectedOption == "yes", value);
           await transaction.wait();
           router.push("/HavingBet");
         }
         else{
-          console.log("未连接合法赌局");
+          console.log("当前时间：",currentTime);
+          console.log("截止日期：",pageState.end);
+          let s = await contract.state();
+          if(Number(s)==2){
+            router.push("/FinishBet");
+          }
         }
       } else {
         console.log("钱包未连接");
@@ -480,9 +498,10 @@ export default function UnconnectedWalletPage() {
     contract = new ethers.Contract(contractAddress, LAZY_BET_ABI, signer);
 
     data.topic=await contract.message();
-    data.judge=await contract.judge();
+    const time=await contract.endTime();
     const yes_count=await contract.betValues(0);
     const no_count=await contract.betValues(1);
+    data.end=Number(time)*1000;
     data.yes = Number(yes_count);
     data.no=Number(no_count);
 
@@ -490,7 +509,7 @@ export default function UnconnectedWalletPage() {
     sessionStorage.setItem('pageData', JSON.stringify(data));
 
     let s = await contract.state();
-    s=2;
+    console.log(s);
     if(Number(s)==2){
       router.push("/FinishBet");
     }
@@ -505,12 +524,15 @@ export default function UnconnectedWalletPage() {
       fs:feedbackSelection,
       fc:feedbackcomment
     }
+
+    setValidation("Thanks! You will get ERC 20 rewards!")
+
     const feedbackText = JSON.stringify(fb); // change the path of your file
     const APIKey = '26f08469.b1676dfe1bc54ee78657d230fd94de6e';// the API key from the lighthouse account
     const uploadResponse = await lighthouse.uploadText(feedbackText, APIKey);
-    const attestationRes = await createSchema(feedbackText);
+    //const attestationRes = await createSchema(feedbackText);
     console.log(uploadResponse);
-    console.log(attestationRes);
+    //console.log(attestationRes);
   }
 
   // 处理输入框内容变化的函数
@@ -549,7 +571,7 @@ export default function UnconnectedWalletPage() {
                   Topic:{pageState.topic}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Judge:{pageState.judge}
+                  End Time:{pageState.end}
                 </p>
               </CardHeader>
               <CardContent>
@@ -677,11 +699,17 @@ export default function UnconnectedWalletPage() {
                   <div>
                     Please explain your reasoning.
                   </div>
-                  <input
-                      placeholder={"Your answer:"}
-                      value={feedbackcomment}
-                      onChange={handleFeedbackComment}
-                  />
+                  <div>
+                    <input
+                        placeholder={"Your answer:"}
+                        value={feedbackcomment}
+                        onChange={handleFeedbackComment}
+                    />
+                    <h2>
+                      {feedbackValidation}
+                    </h2>
+
+                  </div>
 
                   <button
                       className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg disabled:opacity-50"

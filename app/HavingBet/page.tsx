@@ -10,19 +10,19 @@ import {useEffect} from "react";
 export default function ConnectedBetPlacedPage() {
     const router = useRouter()
     const [pageState, setPage]=React.useState({
-        topic: "",
-        judge: "",
-        yes: 0,
-        no: 0
+        topic:"",
+        end:0,
+        yes:0,
+        no:0
     })
     let data={
         topic:"Who will win World Cup?",
-        judge:"0x12345678",
+        end:0,
         yes:0,
         no:0
     }
     useEffect(() => {
-        const Data = sessionStorage.getItem('betDetail');
+        const Data = sessionStorage.getItem('pageData');
         data = JSON.parse(Data);
         setPage(data)
     }, []); // 传入空数组，确保只在组件加载时执行一次
