@@ -48,10 +48,25 @@ const DCATest = {
   },
 }
 
+const BaseSepoliaTest = {
+  id:84532,
+  name:'Base Sepolia TestNet',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ['https://sepolia.base.org'],
+    },
+  },
+}
+
+const selectedChains = process.env.REACT_APP_CHAIN_ENV === 'test'
+    ? [DCATest, optimismFork]
+    : [optimism, mainnetFork];
+
 export const config = getDefaultConfig({
   appName: 'Crypto DCA',
   projectId: 'a1fc63f578160e84914e2f3788fc6c58',
-  chains: [optimism],
+  chains: [BaseSepoliaTest],
   ssr: true, // If your dApp uses server side rendering (SSR)
 });
 

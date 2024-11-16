@@ -13,6 +13,7 @@ import {
   EvmChains,
   IndexService
 } from "@ethsign/sp-sdk";
+import * as test from "node:test";
 
 export default function UnconnectedWalletPage() {
 
@@ -447,7 +448,15 @@ export default function UnconnectedWalletPage() {
       const accounts = await window.ethereum.request({ method: 'eth_accounts' });
       if (accounts.length > 0) {
         console.log("钱包已连接，地址为：", accounts[0]);
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        contract = new ethers.Contract(contractAddress, LAZY_BET_ABI, signer);
+
         const op=selectedOption == "yes"
+        console.log("op:",op);
+        const transaction = await contract.bet(op, 1);
+        await transaction.wait();
+        router.push("/HavingBet");
         if(contract!=null){
           const transaction = await contract.bet(op, 1);
           await transaction.wait();
@@ -465,21 +474,30 @@ export default function UnconnectedWalletPage() {
   }
 
   async function renderBet(){
-    // const provider = new ethers.BrowserProvider(window.ethereum);
-    // contract = new ethers.Contract(contractAddress, LAZY_BET_ABI, provider);
-    //
-    // const s = await contract.state();
-    // if(s==2){
-    //   router.push("/FinishBet");
-    // }
-    // else{
-    //   // 调用合约中的 message 函数获取信息
-    //   data.topic=await contract.message();
-    //   data.judge=await contract.judge();
-    //   setPage(data)
-    // }
-    sessionStorage.setItem('betDetail', JSON.stringify(data));
-    router.push("/FinishBet");
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner()
+    console.log("合约地址:",contractAddress)
+    contract = new ethers.Contract(contractAddress, LAZY_BET_ABI, signer);
+
+    data.topic=await contract.message();
+    data.judge=await contract.judge();
+    const yes_count=await contract.betValues(0);
+    const no_count=await contract.betValues(1);
+    data.yes = Number(yes_count);
+    data.no=Number(no_count);
+
+    sessionStorage.setItem('contractAddress',contractAddress);
+    sessionStorage.setItem('pageData', JSON.stringify(data));
+
+    let s = await contract.state();
+    s=2;
+    if(Number(s)==2){
+      router.push("/FinishBet");
+    }
+    else{
+      // 调用合约中的 message 函数获取信息
+      setPage(data);
+    }
   }
 
   async function submitFeedback(){
@@ -504,6 +522,7 @@ export default function UnconnectedWalletPage() {
     setComment(event.target.value);  // 更新输入框的值
   };
 
+
   return (
       <div className="min-h-screen bg-background p-4">
         <div className="mx-auto max-w-2xl">
@@ -518,10 +537,11 @@ export default function UnconnectedWalletPage() {
                 onChange={handleInputChange}
             />
             <button onClick={renderBet}>Search</button>
-            < ConnectButton/>
+            < ConnectButton chainStatus="full"/>
           </header>
 
           <div className="grid gap-6">
+
             <Card>
               <CardHeader>
                 <CardTitle>Bet on the Outcome</CardTitle>
