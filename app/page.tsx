@@ -14,9 +14,6 @@ import {
   EvmChains,
   IndexService
 } from "@ethsign/sp-sdk";
-import * as test from "node:test";
-import {color, fontStyle} from "@mui/system";
-import {white} from "next/dist/lib/picocolors";
 
 export default function UnconnectedWalletPage() {
 
@@ -24,16 +21,19 @@ export default function UnconnectedWalletPage() {
   // Create schema
   async function createSchema(feedbackDetails:string){
     const accounts=await window.ethereum.request({ method: 'eth_accounts' });
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = provider.getSigner();
+    const addr:string=accounts[0]
+
     const client = new SignProtocolClient(SpMode.OnChain, {
       chain: EvmChains.sepolia,
-      account:accounts[0]
+      account:addr
     });
-
     const SchemaRes = await client.createSchema({
       name: "feedback_schema",
       data: [{
-        name: feedbackDetails,
-        type: accounts[0]
+        name: "feedbackDetails",
+        type: addr
       }],
     });
 
@@ -41,9 +41,9 @@ export default function UnconnectedWalletPage() {
       schemaId: SchemaRes.schemaId,
       data: {
         contractDetails: feedbackcomment,
-        accounts: [accounts[0]]
+        accounts: addr
       },
-      indexingValue: accounts[0].toLowerCase()
+      indexingValue: saddr.toLowerCase()
     });
     return AttestationRes;
   }
@@ -197,11 +197,6 @@ export default function UnconnectedWalletPage() {
           "internalType": "bool",
           "name": "_result",
           "type": "bool"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_value",
-          "type": "uint256"
         }
       ],
       "name": "bet",
@@ -466,13 +461,13 @@ export default function UnconnectedWalletPage() {
         const signer = await provider.getSigner();
         contract = new ethers.Contract(contractAddress, LAZY_BET_ABI, signer);
 
-        const op=selectedOption == "yes"
+        const op= selectedOption == "yes"
         console.log("op:",op);
         if(currentTime<pageState.end){
           //const value=parseEther("1")
-          const value=BigInt(10 ** 18);
-          const transaction = await contract.bet(selectedOption == "yes", value);
-          await transaction.wait();
+          await contract.bet(op, {
+            "value": BigInt(1),
+          });
           router.push("/HavingBet");
         }
         else{
@@ -499,8 +494,8 @@ export default function UnconnectedWalletPage() {
 
     data.topic=await contract.message();
     const time=await contract.endTime();
-    const yes_count=await contract.betValues(0);
-    const no_count=await contract.betValues(1);
+    const yes_count=await contract.betValues(1);
+    const no_count=await contract.betValues(0);
     data.end=Number(time)*1000;
     data.yes = Number(yes_count);
     data.no=Number(no_count);
@@ -524,8 +519,13 @@ export default function UnconnectedWalletPage() {
       fs:feedbackSelection,
       fc:feedbackcomment
     }
+    if(feedbackcomment.length>20){
+      setValidation("Thanks! You will get ERC 20 rewards!");
+    }
+    else{
+      setValidation("Your idea is good but no enough.")
+    }
 
-    setValidation("Thanks! You will get ERC 20 rewards!")
 
     const feedbackText = JSON.stringify(fb); // change the path of your file
     const APIKey = '26f08469.b1676dfe1bc54ee78657d230fd94de6e';// the API key from the lighthouse account
@@ -705,7 +705,7 @@ export default function UnconnectedWalletPage() {
                         value={feedbackcomment}
                         onChange={handleFeedbackComment}
                     />
-                    <h2>
+                    <h2 style={{ color: 'red' }}>
                       {feedbackValidation}
                     </h2>
 

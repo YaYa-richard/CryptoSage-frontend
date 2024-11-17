@@ -404,10 +404,9 @@ export default function ConnectedClaimPage() {
         contractAddress = sessionStorage.getItem('contractAddress')
         console.log("合约地址:",contractAddress)
         const contract = new ethers.Contract(contractAddress, LAZY_BET_ABI, signer);
-        contract.claim();
+        await contract.claim();
         //showModal();
 
-        router.push("/");
         setClaimed(true)
     }
     useEffect(() => {
